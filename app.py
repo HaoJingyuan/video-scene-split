@@ -44,6 +44,24 @@ async def detect_scenes(request: VideoRequest):
     - 返回: scenes.txt 和 predictions.txt 的路径
     """
     video_path = request.video_path
+
+    out_root = os.getenv("OUT_ROOT")
+    if not out_root:
+        raise HTTPException(status_code=500, detail="OUT_ROOT 环境变量未配置")
+
+    def _norm_path_for_prefix(p: str) -> str:
+        p = (p or "").strip().replace("\\", "/")
+        while "//" in p:
+            p = p.replace("//", "/")
+        return p.rstrip("/")
+
+    expected_root = _norm_path_for_prefix(out_root)
+    actual_path = _norm_path_for_prefix(video_path)
+    if actual_path != expected_root and not actual_path.startswith(expected_root + "/"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"挂载路径不一致，期望: {out_root.strip()}，实际: {video_path}"
+        )
     
     # 检查视频文件是否存在
     if not os.path.exists(video_path):

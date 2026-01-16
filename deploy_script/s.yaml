@@ -1,6 +1,6 @@
 edition: 3.0.0
 name: transnetv2-test
-access: "data_shanghai" # todo: 在系统下新建火山引擎�?AK / SK 密钥
+access: "default-volcano" # todo: 在系统下新建火山引擎�?AK / SK 密钥
 
 vars:
   sid: "transnetv2-test"
@@ -20,29 +20,24 @@ resources:
         RequestTimeout: 900
         Runtime: native/v1
         SourceType: image # 支持 image / zip
-        Source: rec-cn-beijing.cr.volces.com/animation/transnetv2-test:0.0.1
+        Source: dcc-cloud2-cn-beijing.cr.volces.com/dcc-cloud/transnetv2:0.0.1
         MaxConcurrency: 1
         MemoryMB: 8196
         Processor: gpu
         InstanceType: nvidia-tesla-l4
-        Envs:         
-          - Key: MODEL_BASE_PATH
-            Value: /model
-          - Key: HF_HOME
-            Value: /model
-          - Key: RMBG_MODEL_DIR
-            Value: /model/RMBG2.0
+        Envs: 
+          - Key: OUT_ROOT
+            Value: /mnt/auto/feishu_movie_output/        
           - Key: PORT
             Value: '8000'
         VpcConfig:
           EnableVpc: true
           EnableSharedInternetAccess: true
-          VpcId: vpc-mjana6ipz2tc5smt1bl24j5t
+          VpcId: vpc-rs46tr20ji0wv0x58vge86q
           SubnetIds:
-            - subnet-mjangncd9jwg5smt1a6b6y5g
+            - subnet-minbd39plbeo5smt1ai7jqqb
           SecurityGroupIds:
-            - sg-rrpf2ei7ks1sv0x583olqtg
-
+            - sg-rs46twz3vny8v0x57j3abxz
         TosMountConfig:
           EnableTos: true
           Credentials:
@@ -50,16 +45,18 @@ resources:
             SecretAccessKey: ${config('SecretKey')}
           MountPoints:
             - Endpoint: http://tos-${vars.region}.ivolces.com
-              BucketName: publishing-mat-cdp
-              BucketPath: /
-              LocalMountPath: /mnt/auto
+              BucketName: dcc-bj-video-cut-inout
+              BucketPath: /feishu_movie_output/
+              LocalMountPath: /mnt/auto/feishu_movie_output/
               ReadOnly: false
       triggers:
         - TriggerName: apig-trigger
           TriggerType: apig
-          GatewayId: "gcv9q18b1nm844u54kvlg" # todo: 新建 apig 后填�?gatewayId 即可
-          ServiceName: "service-rmbg"
-          UpstreamName: "upstream-rmbg"
+          GatewayId: "gcp1jht7vgc9hjb8nftb0" # todo: 新建 apig 后填写 gatewayId 即可
+          # ServiceName: "service-songclone"
+          # UpstreamName: "upstream-songclone"
+          ServiceName: "service-transnetv2"
+          UpstreamName: "upstream-transnetv2"
           RouteName: default
           Path: "/"
           Method:
@@ -70,3 +67,6 @@ resources:
             - HEAD
             - OPTIONS
             - CONNECT
+          AdvancedSetting:
+            CorsPolicySetting:
+              Enable: true
