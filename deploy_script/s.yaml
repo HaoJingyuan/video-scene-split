@@ -1,0 +1,72 @@
+edition: 3.0.0
+name: transnetv2-test
+access: "data_shanghai" # todo: 在系统下新建火山引擎�?AK / SK 密钥
+
+vars:
+  sid: "transnetv2-test"
+  region: "cn-beijing"
+  functionName: "transnetv2-test-function"
+
+resources:
+  transnetv2-test:
+    component: volcano-vefaas@1.4.3
+    props:
+      common:
+        Region: ${vars.region}
+      function:
+        Name: ${vars.functionName}
+        Description: "transnetv2-test"
+        ExclusiveMode: true
+        RequestTimeout: 900
+        Runtime: native/v1
+        SourceType: image # 支持 image / zip
+        Source: rec-cn-beijing.cr.volces.com/animation/transnetv2-test:0.0.1
+        MaxConcurrency: 1
+        MemoryMB: 8196
+        Processor: gpu
+        InstanceType: nvidia-tesla-l4
+        Envs:         
+          - Key: MODEL_BASE_PATH
+            Value: /model
+          - Key: HF_HOME
+            Value: /model
+          - Key: RMBG_MODEL_DIR
+            Value: /model/RMBG2.0
+          - Key: PORT
+            Value: '8000'
+        VpcConfig:
+          EnableVpc: true
+          EnableSharedInternetAccess: true
+          VpcId: vpc-mjana6ipz2tc5smt1bl24j5t
+          SubnetIds:
+            - subnet-mjangncd9jwg5smt1a6b6y5g
+          SecurityGroupIds:
+            - sg-rrpf2ei7ks1sv0x583olqtg
+
+        TosMountConfig:
+          EnableTos: true
+          Credentials:
+            AccessKeyId: ${config('AccessKey')}
+            SecretAccessKey: ${config('SecretKey')}
+          MountPoints:
+            - Endpoint: http://tos-${vars.region}.ivolces.com
+              BucketName: publishing-mat-cdp
+              BucketPath: /
+              LocalMountPath: /mnt/auto
+              ReadOnly: false
+      triggers:
+        - TriggerName: apig-trigger
+          TriggerType: apig
+          GatewayId: "gcv9q18b1nm844u54kvlg" # todo: 新建 apig 后填�?gatewayId 即可
+          ServiceName: "service-rmbg"
+          UpstreamName: "upstream-rmbg"
+          RouteName: default
+          Path: "/"
+          Method:
+            - POST
+            - GET
+            - PUT
+            - DELETE
+            - HEAD
+            - OPTIONS
+            - CONNECT
