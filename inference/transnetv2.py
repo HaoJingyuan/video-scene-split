@@ -7,11 +7,8 @@ class TransNetV2:
 
     def __init__(self, model_dir=None):
         if model_dir is None:
-            model_dir = os.path.join(os.path.dirname(__file__), "transnetv2-weights/")
-            if not os.path.isdir(model_dir):
-                raise FileNotFoundError(f"[TransNetV2] ERROR: {model_dir} is not a directory.")
-            else:
-                print(f"[TransNetV2] Using weights from {model_dir}.")
+            model_dir = self._resolve_model_dir()
+        print(f"[TransNetV2] Using weights from {model_dir}.")
 
         self._input_size = (27, 48, 3)
         try:
@@ -20,6 +17,29 @@ class TransNetV2:
             raise IOError(f"[TransNetV2] It seems that files in {model_dir} are corrupted or missing. "
                           f"Re-download them manually and retry. For more info, see: "
                           f"https://github.com/soCzech/TransNetV2/issues/1#issuecomment-647357796") from exc
+
+    @staticmethod
+    def _has_saved_model(path: str) -> bool:
+        return os.path.isfile(os.path.join(path, "saved_model.pb")) or os.path.isfile(
+            os.path.join(path, "saved_model.pbtxt")
+        )
+
+    @classmethod
+    def _resolve_model_dir(cls) -> str:
+        here = os.path.dirname(os.path.abspath(__file__))
+        candidates = [
+            os.path.join(here, "transnetv2-weights"),
+            os.path.join(here, "..", "server", "models", "transnetv2-weights"),
+            "/opt/application/server/models/transnetv2-weights",
+            "/app/server/models/transnetv2-weights",
+        ]
+        for candidate in candidates:
+            resolved = os.path.abspath(candidate)
+            if cls._has_saved_model(resolved):
+                return resolved
+        raise FileNotFoundError(
+            "[TransNetV2] ERROR: cannot find SavedModel. Tried: " + ", ".join(candidates)
+        )
 
     def predict_raw(self, frames: np.ndarray):
         assert len(frames.shape) == 5 and frames.shape[2:] == self._input_size, \

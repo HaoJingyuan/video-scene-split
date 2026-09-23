@@ -1,8 +1,11 @@
 import os
+from typing import List, Optional
+
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from inference.transnetv2 import TransNetV2
+from scene_keyframe import KeyframeError, process_video_url
 import numpy as np
 
 app = FastAPI(title="视频场景分割服务", version="1.0.0")
@@ -26,6 +29,25 @@ class SceneResponse(BaseModel):
     scenes_path: str
     predictions_path: str
     scene_count: int
+
+
+class KeyframeRequest(BaseModel):
+    video_url: str = Field(..., description="可下载的视频 http/https URL")
+    expires: Optional[int] = Field(None, description="签名 URL 有效期，单位秒，默认 3600")
+
+
+class SceneKeyframeItem(BaseModel):
+    start_frame: int
+    end_frame: int
+    frame_index: int
+    url: str
+
+
+class KeyframeResponse(BaseModel):
+    task_id: str
+    urls: List[str]
+    scene_count: int
+    scenes: List[SceneKeyframeItem]
 
 
 @app.on_event("startup")
@@ -104,6 +126,28 @@ async def detect_scenes(request: VideoRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"处理视频时出错: {str(e)}")
+
+
+@app.post("/extract_scene_keyframes", response_model=KeyframeResponse)
+def extract_scene_keyframes(request: KeyframeRequest):
+    """
+    从视频 URL 提取每个场景的中间关键帧，并返回 TOS 签名 URL 列表。
+
+    流程：下载视频 -> TransNet 场景分割 -> 每场景抽中间帧 -> 上传 TOS -> 签名。
+    """
+    try:
+        result = process_video_url(
+            request.video_url,
+            get_model(),
+            expires=request.expires,
+        )
+        return KeyframeResponse(**result)
+    except KeyframeError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"提取关键帧时出错: {str(exc)}")
 
 
 @app.get("/health")

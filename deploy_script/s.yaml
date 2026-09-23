@@ -20,7 +20,7 @@ resources:
         RequestTimeout: 900
         Runtime: native/v1
         SourceType: image # 支持 image / zip
-        Source: dcc-cloud2-cn-beijing.cr.volces.com/dcc-cloud/transnetv2:0.0.1
+        Source: dcc-cloud2-cn-beijing.cr.volces.com/dcc-cloud/transnetv2:0.0.3
         MaxConcurrency: 1
         MemoryMB: 8196
         Processor: gpu
@@ -30,6 +30,22 @@ resources:
             Value: /mnt/auto/feishu_movie_output/        
           - Key: PORT
             Value: '8000'
+          - Key: TOS_ACCESS_KEY
+            Value: ${config('AccessKey')}
+          - Key: TOS_SECRET_KEY
+            Value: ${config('SecretKey')}
+          - Key: TOS_ENDPOINT
+            Value: tos-cn-beijing.ivolces.com
+          - Key: TOS_SIGN_ENDPOINT
+            Value: tos-cn-beijing.volces.com
+          - Key: TOS_REGION
+            Value: cn-beijing
+          - Key: TOS_BUCKET
+            Value: dcc-bj-video-cut-inout
+          - Key: TOS_KEY_PREFIX
+            Value: feishu_movie_output
+          - Key: TOS_SIGN_EXPIRES
+            Value: '3600'
         VpcConfig:
           EnableVpc: true
           EnableSharedInternetAccess: true
